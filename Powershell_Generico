@@ -1,1 +1,73 @@
+#PSExec Comands:
+psexec \\USXHMTD -u admin -p Upl417018 -h -d powershell.exe "enable-psremoting -force"
+psexec \\USXHMTD -u admin -p Upl417018 -h -d powershell.exe "set-executionpolicy RemoteSigned -force"
+psexec \\USXHMTD -u admin -p Upl417018 -s c:\windows\system32\winrm.cmd quickconfig -quiet
+Enter-PSSession
+Exit-PSSession
 
+#Desabilitar:
+Set-ExecutionPolicy -ExecutionPolicy Undefined
+Disable-PSRemoting
+psexec \\uspws -u admin -p Upl417018 -h -d powershell.exe "Disable-PSRemoting"
+psexec \\uspws -u admin -p Upl417018 -h -d powershell.exe "Set-ExecutionPolicy -ExecutionPolicy Undefined"
+
+#Listar Execution Policy:
+Get-ExecutionPolicy -List
+
+#Copiar Pasta para Maquina de Destino:
+Copy-Item \\ussdb-vm\UPL4\Tools\Win10-winhlp32-fix -Destination \\USXHMTR\c$\Windows\Temp\Win10Fix -Recurse
+psexec \\USXHMTR -u admin -p Upl417018 -h -d "C:\Windows\Temp\Win10Fix\Win10-Hlp32-Fix.cmd"
+
+Copy-Item \\ussdb-vm\UPL4\Tools\Win10-winhlp32-fix -Destination \\USXHMTR\c$\Windows\Temp\Win10Fix -Recurse
+psexec \\USXHMTR -u admin -p Upl417018 -h -d cmd /c "C:\Windows\Temp\Win10Fix\Win10-Hlp32-Fix.cmd"
+
+Copy-Item \\ussdb-vm\UPL4\Tools\Win10-winhlp32-fix -Destination \\uspws\c$\Windows\Temp\Win10Fix -Recurse
+psexec \\USXHMTR -u admin -p Upl417018 -h -d "C:\Windows\Temp\Win10Fix\Win10-Hlp32-Fix.cmd"
+
+#Descobrindo Tipo da Placa de Rede
+psexec \\USEHMTC powershell.exe Get-NetConnectionProfile -InterfaceAlias ‘SUP’
+
+#Alterando tipo de Rede
+psexec \\USEHMTC powershell.exe Get-NetConnectionProfile -InterfaceAlias ‘SUP’ | Set-NetConnectionProfile -NetworkCategory DomainAuthenticated
+
+#Mostrar servicos/status
+Get-Service -name "*PCNS1*"
+
+#Visualizar estado de todos os firewalls
+Netsh Advfirewall show allprofiles
+
+#Desabilitar estado de todos os firewalls
+NetSh Advfirewall set allprofiles state off
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False.
+
+#Timezone
+Set-TimeZone -Name "E. South America Standard Time"
+
+#Timezone CMD
+psexec \\USXHMTD -u admin -p Upl417018 -h -d tzutil /s "Central America Standard Time"
+
+#Check Timezone CMD
+psexec \\USXHMTD -u admin -p Upl417018 -h -d tzutil /g
+
+#Escrever listagem de maquinas baseado em OU
+Get-ADComputer -LDAPFilter "(name=*)" -SearchBase "DC=DEC04,DC=local" | Select -expand name | Out-File -Encoding utf8 "\\Ussdb-vm\upl4\Tools\Symantec Endpoint Protection version 14.0.3897.1101 - English\Scripts\ALLMach.txt"
+
+#PSExec com Listagem
+psexec @R:\Tools\Symantec Endpoint Protection version 14.0.3897.1101 - English\Scripts\Computers-HMI_Viewers.txt ipconfig /all | findstr "Default Gateway Host" >> R:\Tools\Symantec Endpoint Protection version 14.0.3897.1101 - English\Scripts\Servergateways.txt
+
+#PSExec Nome e Default Gateway (Lista)
+psexec @D:\ALLMach.txt ipconfig /all | findstr "Default Gateway Host" >> d:\Servergateways.txt
+
+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+= Active Directory =+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+
+#Configurar IP Address:
+New-NetIPAddress –InterfaceAlias “Wired Ethernet Connection” –IPAddress “192.168.0.1” –PrefixLength 24 -DefaultGateway 192.168.0.254
+
+#Configurar Nome:
+Rename-Computer DC2
+
+#Promover Computador a DC:
+Install-ADDSDomainController -InstallDns -Credential (Get-Credential hjcc.net\administrator) -DomainName hjcc.net -SafeModeAdministratorPassword (ConvertTo-SecureString -AsPlainText "ipod15GB." -Force)
+
+#Configurando DNS 
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses ("192.168.15.105","127.0.0.1")
